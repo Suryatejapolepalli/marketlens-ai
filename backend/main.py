@@ -3,6 +3,7 @@ from fastapi.encoders import jsonable_encoder
 from google.cloud import bigquery
 import pandas as pd
 import numpy as np
+import json
 
 app = FastAPI()
 
@@ -13,9 +14,9 @@ client = bigquery.Client(project=PROJECT_ID)
 
 
 def clean_df(df):
-    df = df.replace([np.inf, -np.inf], np.nan)
-    df = df.astype(object).where(pd.notnull(df), None)
-    return jsonable_encoder(df.to_dict(orient="records"))
+    return json.loads(
+        df.to_json(orient="records", date_format="iso")
+    )
 
 
 @app.get("/")
