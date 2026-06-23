@@ -7,27 +7,23 @@ OUTPUT_FILE = Path("data/processed/technical_indicators.csv")
 df = pd.read_csv(INPUT_FILE)
 
 df["date"] = pd.to_datetime(df["date"])
-df = df.sort_values(["ticker", "date"])
+df = df.sort_values(["ticker", "date"]).reset_index(drop=True)
 
-def add_indicators(group):
-    group = group.copy()
+g = df.groupby("ticker")
 
-    group["daily_return"] = group["close"].pct_change()
-    group["sma_20"] = group["close"].rolling(window=20).mean()
-    group["sma_50"] = group["close"].rolling(window=50).mean()
-    group["volatility_20"] = group["daily_return"].rolling(window=20).std()
-    group["avg_volume_20"] = group["volume"].rolling(window=20).mean()
-    group["volume_ratio"] = group["volume"] / group["avg_volume_20"]
+df["daily_return"] = g["close"].pct_change()
+df["sma_20"] = g["close"].transform(lambda x: x.rolling(20).mean())
+df["sma_50"] = g["close"].transform(lambda x: x.rolling(50).mean())
+df["volatility_20"] = g["daily_return"].transform(lambda x: x.rolling(20).std())
+df["avg_volume_20"] = g["volume"].transform(lambda x: x.rolling(20).mean())
+df["volume_ratio"] = df["volume"] / df["avg_volume_20"]
 
-    group["trend_signal"] = "Neutral"
-    group.loc[group["close"] > group["sma_20"], "trend_signal"] = "Bullish"
-    group.loc[group["close"] < group["sma_20"], "trend_signal"] = "Bearish"
+df["trend_signal"] = "Neutral"
+df.loc[df["close"] > df["sma_20"], "trend_signal"] = "Bullish"
+df.loc[df["close"] < df["sma_20"], "trend_signal"] = "Bearish"
 
-    return group
-
-result = df.groupby("ticker", group_keys=False).apply(add_indicators)
-
-result.to_csv(OUTPUT_FILE, index=False)
+df.to_csv(OUTPUT_FILE, index=False)
 
 print(f"Saved technical indicators to {OUTPUT_FILE}")
-print(result.tail())
+print(df.columns.tolist())
+print(df.tail())
