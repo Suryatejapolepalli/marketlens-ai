@@ -6,6 +6,10 @@ OUTPUT_FILE = Path("data/processed/technical_indicators.csv")
 
 df = pd.read_csv(INPUT_FILE)
 
+# Add ticker if missing
+if "ticker" not in df.columns:
+    df.insert(0, "ticker", "AAPL")  # change if needed
+
 df["date"] = pd.to_datetime(df["date"])
 df = df.sort_values(["ticker", "date"])
 
@@ -13,10 +17,10 @@ def add_indicators(group):
     group = group.copy()
 
     group["daily_return"] = group["close"].pct_change()
-    group["sma_20"] = group["close"].rolling(window=20).mean()
-    group["sma_50"] = group["close"].rolling(window=50).mean()
-    group["volatility_20"] = group["daily_return"].rolling(window=20).std()
-    group["avg_volume_20"] = group["volume"].rolling(window=20).mean()
+    group["sma_20"] = group["close"].rolling(20).mean()
+    group["sma_50"] = group["close"].rolling(50).mean()
+    group["volatility_20"] = group["daily_return"].rolling(20).std()
+    group["avg_volume_20"] = group["volume"].rolling(20).mean()
     group["volume_ratio"] = group["volume"] / group["avg_volume_20"]
 
     group["trend_signal"] = "Neutral"
@@ -27,7 +31,10 @@ def add_indicators(group):
 
 result = df.groupby("ticker", group_keys=False).apply(add_indicators)
 
+result.insert(0, "ticker", "AAPL")
+
 result.to_csv(OUTPUT_FILE, index=False)
 
 print(f"Saved technical indicators to {OUTPUT_FILE}")
 print(result.tail())
+print(result.columns.tolist())
