@@ -7,3 +7,4 @@ data/raw/
 data/processed/
 vector_store/
 .DS_Store
+node_modules/
