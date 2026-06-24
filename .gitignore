@@ -8,3 +8,14 @@ data/processed/
 vector_store/
 .DS_Store
 node_modules/
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Env
+.env
+
+# Chroma / Vector DB
+backend/rag/chroma_db/
+chroma_db/

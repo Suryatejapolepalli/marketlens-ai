@@ -5,6 +5,8 @@ from google.cloud import bigquery
 import pandas as pd
 import numpy as np
 import json
+from agents.orchestrator import run_agents
+from rag.retriever import search_documents
 
 app = FastAPI()
 
@@ -383,3 +385,29 @@ def ai_stock_score(ticker: str):
         "volume_ratio": r.volume_ratio,
         "reasons": reasons,
     }
+
+@app.get("/ai/analyze/{ticker}")
+def ai_analyze(ticker: str):
+    indicators = get_technical_indicators(ticker)
+    fundamentals_list = get_fundamentals(ticker)
+    news = get_news(ticker)
+    analyst_ratings = get_analyst_ratings(ticker)
+    economic_data = get_economic_data()
+
+    fundamentals = fundamentals_list[0] if fundamentals_list else {}
+
+    return run_agents(
+        ticker=ticker.upper(),
+        indicators=indicators,
+        fundamentals=fundamentals,
+        news=news,
+        economic_data=economic_data,
+        analyst_ratings=analyst_ratings
+    )
+@app.get("/rag/search/{ticker}")
+def rag_search(ticker: str):
+    return search_documents(
+        query=f"Latest important news, filings, risks, and market context about {ticker}",
+        ticker=ticker,
+        n_results=5
+    )
