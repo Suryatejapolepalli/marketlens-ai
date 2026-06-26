@@ -101,6 +101,7 @@ def get_sec_filings(ticker: str):
     SELECT *
     FROM `{PROJECT_ID}.{DATASET}.sec_filings`
     WHERE ticker = '{ticker.upper()}'
+    ORDER BY filing_date DESC
     LIMIT 20
     """
     df = client.query(query).to_dataframe()
@@ -110,9 +111,10 @@ def get_sec_filings(ticker: str):
 @app.get("/economic_data")
 def get_economic_data():
     query = f"""
-    SELECT *
+    SELECT indicator_code, indicator_name, value, date
     FROM `{PROJECT_ID}.{DATASET}.economic_data`
-    LIMIT 100
+    QUALIFY ROW_NUMBER() OVER (PARTITION BY indicator_name ORDER BY date DESC) = 1
+    ORDER BY indicator_name
     """
     df = client.query(query).to_dataframe()
     return clean_df(df)
@@ -146,6 +148,18 @@ class CommentItem(BaseModel):
 
 @app.post("/users/register")
 def register_user(user: RegisterUser):
+    existing_query = f"""
+    SELECT user_id
+    FROM `{PROJECT_ID}.{DATASET}.users`
+    WHERE email=@email
+    LIMIT 1
+    """
+    existing_job_config = bigquery.QueryJobConfig(query_parameters=[
+        bigquery.ScalarQueryParameter("email", "STRING", user.email),
+    ])
+    if list(client.query(existing_query, job_config=existing_job_config).result()):
+        return {"success": False, "message": "Email already registered"}
+
     user_id = str(uuid.uuid4())
 
     query = f"""

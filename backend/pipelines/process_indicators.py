@@ -18,6 +18,24 @@ df["volatility_20"] = g["daily_return"].transform(lambda x: x.rolling(20).std())
 df["avg_volume_20"] = g["volume"].transform(lambda x: x.rolling(20).mean())
 df["volume_ratio"] = df["volume"] / df["avg_volume_20"]
 
+
+def rsi(close, period=14):
+    delta = close.diff()
+    gain = delta.clip(lower=0).rolling(period).mean()
+    loss = (-delta.clip(upper=0)).rolling(period).mean()
+    rs = gain / loss
+    return 100 - (100 / (1 + rs))
+
+
+def macd(close, fast=12, slow=26):
+    ema_fast = close.ewm(span=fast, adjust=False).mean()
+    ema_slow = close.ewm(span=slow, adjust=False).mean()
+    return ema_fast - ema_slow
+
+
+df["rsi"] = g["close"].transform(rsi)
+df["macd"] = g["close"].transform(macd)
+
 df["trend_signal"] = "Neutral"
 df.loc[df["close"] > df["sma_20"], "trend_signal"] = "Bullish"
 df.loc[df["close"] < df["sma_20"], "trend_signal"] = "Bearish"

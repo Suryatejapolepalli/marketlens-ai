@@ -7,7 +7,7 @@ def analyze_market_context(economic_data: list, analyst_ratings: list):
         sell_count = 0
 
         for item in analyst_ratings:
-            rating = str(item.get("rating", "")).lower()
+            rating = str(item.get("recommendation", "")).lower()
             if "buy" in rating:
                 buy_count += 1
             elif "sell" in rating:

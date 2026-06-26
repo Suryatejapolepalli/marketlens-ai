@@ -23,6 +23,7 @@ for ticker in TICKERS:
             "pe_ratio": info.get("trailingPE"),
             "eps": info.get("trailingEps"),
             "revenue": info.get("totalRevenue"),
+            "revenue_growth": info.get("revenueGrowth"),
             "profit_margin": info.get("profitMargins"),
             "debt_to_equity": info.get("debtToEquity")
         })
