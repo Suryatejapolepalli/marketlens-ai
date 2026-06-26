@@ -53,6 +53,7 @@ def get_news(ticker: str):
     SELECT *
     FROM `{PROJECT_ID}.{DATASET}.news_articles`
     WHERE ticker = '{ticker.upper()}'
+    ORDER BY datetime DESC
     LIMIT 10
     """
     df = client.query(query).to_dataframe()
@@ -65,6 +66,7 @@ def get_market_prices(ticker: str):
     SELECT *
     FROM `{PROJECT_ID}.{DATASET}.market_prices`
     WHERE ticker = '{ticker.upper()}'
+    ORDER BY date DESC
     LIMIT 100
     """
     df = client.query(query).to_dataframe()
@@ -89,6 +91,7 @@ def get_technical_indicators(ticker: str):
     SELECT *
     FROM `{PROJECT_ID}.{DATASET}.technical_indicators`
     WHERE ticker = '{ticker.upper()}'
+    ORDER BY date DESC
     LIMIT 100
     """
     df = client.query(query).to_dataframe()

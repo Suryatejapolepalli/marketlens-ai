@@ -10,7 +10,7 @@ import {
 } from "recharts";
 import { useTicker } from "../context/TickerContext";
 import { useApiData } from "../hooks/useApiData";
-import { getMarketPrices, getTechnicalIndicators, getAiScore, getEconomicData } from "../services/api";
+import { getMarketPrices, getTechnicalIndicators, getAiAnalysis, getEconomicData } from "../services/api";
 import MetricCard from "../components/MetricCard";
 import { LoadingState, ErrorState, EmptyState } from "../components/StateView";
 
@@ -29,9 +29,8 @@ const MACRO_INDICATORS = [
 ];
 
 function recommendationTone(rec) {
-  if (!rec) return "default";
-  if (rec.includes("Bullish")) return "bull";
-  if (rec.includes("Bearish") || rec.includes("Risky")) return "bear";
+  if (rec === "Buy") return "bull";
+  if (rec === "Sell") return "bear";
   return "gold";
 }
 
@@ -40,7 +39,7 @@ export default function Dashboard() {
 
   const prices = useApiData(() => getMarketPrices(ticker), [ticker]);
   const tech = useApiData(() => getTechnicalIndicators(ticker), [ticker]);
-  const score = useApiData(() => getAiScore(ticker), [ticker]);
+  const score = useApiData(() => getAiAnalysis(ticker), [ticker]);
   const macro = useApiData(() => getEconomicData(), []);
 
   const loading = prices.loading || tech.loading || score.loading;
@@ -52,7 +51,7 @@ export default function Dashboard() {
     score.refetch();
   }
 
-  if (loading) return <LoadingState label={`Loading ${ticker} dashboard...`} />;
+  if (loading) return <LoadingState label={`Running AI analysis for ${ticker}...`} />;
   if (error) return <ErrorState message={error} onRetry={retryAll} />;
 
   const sortedPrices = [...(prices.data || [])].sort(
@@ -86,15 +85,15 @@ export default function Dashboard() {
             Real-time research overview powered by your BigQuery pipeline
           </p>
         </div>
-        {aiScore?.recommendation && (
+        {aiScore?.final_recommendation && (
           <span className={`badge ${
-            recommendationTone(aiScore.recommendation) === "bull"
+            recommendationTone(aiScore.final_recommendation) === "bull"
               ? "badge-bull"
-              : recommendationTone(aiScore.recommendation) === "bear"
+              : recommendationTone(aiScore.final_recommendation) === "bear"
               ? "badge-bear"
               : "badge-neutral"
           }`}>
-            {aiScore.recommendation}
+            {aiScore.final_recommendation}
           </span>
         )}
       </div>
@@ -115,7 +114,7 @@ export default function Dashboard() {
         />
         <MetricCard
           label="AI Score"
-          value={aiScore?.score !== undefined ? `${aiScore.score}/100` : "—"}
+          value={aiScore?.ai_score !== undefined ? `${aiScore.ai_score}/100` : "—"}
           tone="accent"
         />
         <MetricCard
@@ -198,25 +197,25 @@ export default function Dashboard() {
             </Link>
           </div>
 
-          {aiScore?.error ? (
-            <EmptyState message={aiScore.error} />
+          {!aiScore?.final_recommendation ? (
+            <EmptyState message="No AI analysis available." />
           ) : (
             <>
               <p className={`text-3xl font-bold mb-1 ${
-                recommendationTone(aiScore?.recommendation) === "bull"
+                recommendationTone(aiScore.final_recommendation) === "bull"
                   ? "text-bull-400"
-                  : recommendationTone(aiScore?.recommendation) === "bear"
+                  : recommendationTone(aiScore.final_recommendation) === "bear"
                   ? "text-bear-400"
                   : "text-gold-400"
               }`}>
-                {aiScore?.recommendation ?? "—"}
+                {aiScore.final_recommendation}
               </p>
               <p className="text-sm text-slate-500 mb-4">
-                Score: <span className="stat-mono">{aiScore?.score ?? "N/A"}</span>/100
+                Score: <span className="stat-mono">{aiScore.ai_score ?? "N/A"}</span>/100
               </p>
 
               <div className="space-y-2">
-                {(aiScore?.reasons || []).slice(0, 4).map((reason, i) => (
+                {(aiScore.reasons || []).slice(0, 4).map((reason, i) => (
                   <div key={i} className="flex items-start gap-2 text-sm bg-panel-800 rounded-lg p-3">
                     <span className="text-accent-400 mt-0.5">•</span>
                     <span className="text-slate-300">{reason}</span>
