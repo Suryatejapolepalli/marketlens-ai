@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useTicker } from "../context/TickerContext";
 import { useApiData } from "../hooks/useApiData";
 import { addToWatchlist, getWatchlist } from "../services/api";
-import { ensureDemoUser } from "../utils/user";
+import { getUserId } from "../utils/user";
 import { LoadingState, ErrorState, EmptyState } from "../components/StateView";
 
 export default function Watchlist() {
@@ -13,7 +13,7 @@ export default function Watchlist() {
 
   const { data, loading, error, refetch } = useApiData(
     async () => {
-      const userId = await ensureDemoUser();
+      const userId = getUserId();
       return getWatchlist(userId);
     },
     [refreshKey]
@@ -23,7 +23,7 @@ export default function Watchlist() {
     setAdding(true);
     setFeedback(null);
     try {
-      const userId = await ensureDemoUser();
+      const userId = getUserId();
       await addToWatchlist(userId, ticker);
       setFeedback({ type: "ok", message: `${ticker} added to your watchlist.` });
       setRefreshKey((k) => k + 1);

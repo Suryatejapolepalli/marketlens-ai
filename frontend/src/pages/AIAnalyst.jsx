@@ -1,13 +1,20 @@
 import { useTicker } from "../context/TickerContext";
 import { useApiData } from "../hooks/useApiData";
-import { getAiScore } from "../services/api";
+import { getAiAnalysis } from "../services/api";
 import { LoadingState, ErrorState, EmptyState } from "../components/StateView";
-import MetricCard from "../components/MetricCard";
+import RagSources from "../components/RagSources";
 
 function toneFor(recommendation) {
-  if (!recommendation) return "default";
-  if (recommendation.includes("Bullish")) return "bull";
-  if (recommendation.includes("Bearish") || recommendation.includes("Risky")) return "bear";
+  if (recommendation === "Buy") return "bull";
+  if (recommendation === "Sell") return "bear";
+  return "gold";
+}
+
+function toneForSignal(signal) {
+  if (!signal) return "default";
+  const s = signal.toLowerCase();
+  if (["bullish", "positive", "strong", "low risk"].includes(s)) return "bull";
+  if (["bearish", "negative", "weak", "high risk"].includes(s)) return "bear";
   return "gold";
 }
 
@@ -43,32 +50,62 @@ function ScoreGauge({ score }) {
   );
 }
 
+function AgentCard({ label, agent }) {
+  const tone = toneForSignal(agent?.signal);
+  return (
+    <div className="panel panel-hover p-5">
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">{label}</p>
+        <span className="stat-mono text-sm font-semibold text-slate-300">{agent?.score ?? "—"}</span>
+      </div>
+      <p
+        className={`badge ${
+          tone === "bull" ? "badge-bull" : tone === "bear" ? "badge-bear" : "badge-neutral"
+        }`}
+      >
+        {agent?.signal ?? "Unknown"}
+      </p>
+      {agent?.reasons?.length > 0 && (
+        <ul className="mt-3 space-y-1.5">
+          {agent.reasons.slice(0, 3).map((reason, i) => (
+            <li key={i} className="text-xs text-slate-400 leading-snug">
+              · {reason}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export default function AIAnalyst() {
   const { ticker } = useTicker();
-  const { data, loading, error, refetch } = useApiData(() => getAiScore(ticker), [ticker]);
+  const { data, loading, error, refetch } = useApiData(() => getAiAnalysis(ticker), [ticker]);
 
-  if (loading) return <LoadingState label={`Running AI analysis for ${ticker}...`} />;
+  if (loading) return <LoadingState label={`Running AI agent analysis for ${ticker}...`} />;
   if (error) return <ErrorState message={error} onRetry={refetch} />;
-  if (!data || data.error) return <EmptyState message={data?.error || "No AI score available."} />;
+  if (!data || data.error) return <EmptyState message={data?.error || "No AI analysis available."} />;
 
-  const tone = toneFor(data.recommendation);
+  const tone = toneFor(data.final_recommendation);
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">AI Analyst</h1>
         <p className="text-sm text-slate-500 mt-1">
-          Model-generated score and rationale for {ticker}
+          Multi-agent score and rationale for {data.ticker ?? ticker}
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <section className="panel p-8 flex flex-col items-center justify-center text-center">
-          <ScoreGauge score={data.score} />
-          <p className={`badge mt-5 ${
-            tone === "bull" ? "badge-bull" : tone === "bear" ? "badge-bear" : "badge-neutral"
-          }`}>
-            {data.recommendation}
+          <ScoreGauge score={data.ai_score} />
+          <p
+            className={`badge mt-5 ${
+              tone === "bull" ? "badge-bull" : tone === "bear" ? "badge-bear" : "badge-neutral"
+            }`}
+          >
+            {data.final_recommendation}
           </p>
           <p className="text-xs text-slate-500 mt-3">Ticker: {data.ticker}</p>
         </section>
@@ -79,9 +116,11 @@ export default function AIAnalyst() {
             <div className="space-y-2.5">
               {data.reasons.map((reason, i) => (
                 <div key={i} className="flex items-start gap-3 bg-panel-800 rounded-lg p-3.5">
-                  <span className={`mt-1 w-1.5 h-1.5 rounded-full shrink-0 ${
-                    tone === "bull" ? "bg-bull-400" : tone === "bear" ? "bg-bear-400" : "bg-gold-400"
-                  }`} />
+                  <span
+                    className={`mt-1 w-1.5 h-1.5 rounded-full shrink-0 ${
+                      tone === "bull" ? "bg-bull-400" : tone === "bear" ? "bg-bear-400" : "bg-gold-400"
+                    }`}
+                  />
                   <span className="text-sm text-slate-300">{reason}</span>
                 </div>
               ))}
@@ -93,20 +132,23 @@ export default function AIAnalyst() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <MetricCard label="Close" value={data.close !== undefined ? `$${data.close.toFixed(2)}` : "—"} />
-        <MetricCard label="SMA 20" value={data.sma_20 ? `$${data.sma_20.toFixed(2)}` : "—"} />
-        <MetricCard label="SMA 50" value={data.sma_50 ? `$${data.sma_50.toFixed(2)}` : "—"} />
-        <MetricCard
-          label="Volatility 20d"
-          value={data.volatility_20 !== undefined && data.volatility_20 !== null ? data.volatility_20.toFixed(4) : "—"}
-          tone="gold"
-        />
-        <MetricCard
-          label="Trend Signal"
-          value={data.trend_signal ?? "—"}
-          tone={data.trend_signal === "Bullish" ? "bull" : data.trend_signal === "Bearish" ? "bear" : "gold"}
-        />
+        <AgentCard label="Technical" agent={data.technical} />
+        <AgentCard label="Sentiment" agent={data.sentiment} />
+        <AgentCard label="Fundamentals" agent={data.fundamentals} />
+        <AgentCard label="Risk" agent={data.risk} />
+        <AgentCard label="Market Context" agent={data.market_context} />
       </div>
+
+      {data.llm_summary && (
+        <section className="panel p-6">
+          <h2 className="font-semibold mb-4">AI research summary</h2>
+          <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-line">
+            {data.llm_summary}
+          </p>
+        </section>
+      )}
+
+      <RagSources ragContext={data.rag_context} />
     </div>
   );
 }

@@ -1,4 +1,5 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
+import { clearSession, getLocalDisplayName } from "../utils/user";
 
 const ICONS = {
   dashboard: (
@@ -35,6 +36,14 @@ const NAV_ITEMS = [
 ];
 
 function SidebarContent({ onNavigate }) {
+  const navigate = useNavigate();
+
+  function handleLogout() {
+    clearSession();
+    if (onNavigate) onNavigate();
+    navigate("/login", { replace: true });
+  }
+
   return (
     <>
       <div className="flex items-center gap-2.5 px-6 h-16 border-b border-border-800">
@@ -73,6 +82,20 @@ function SidebarContent({ onNavigate }) {
           </NavLink>
         ))}
       </nav>
+
+      <div className="px-4 py-3 border-t border-border-800 flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-[11px] text-slate-500">Signed in as</p>
+          <p className="text-sm font-medium truncate">{getLocalDisplayName()}</p>
+        </div>
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="text-xs font-medium text-slate-500 hover:text-bear-400 transition shrink-0"
+        >
+          Log out
+        </button>
+      </div>
 
       <div className="px-4 py-4 border-t border-border-800">
         <div className="panel px-3 py-3">

@@ -10,13 +10,23 @@ import {
 } from "recharts";
 import { useTicker } from "../context/TickerContext";
 import { useApiData } from "../hooks/useApiData";
-import { getMarketPrices, getTechnicalIndicators, getAiScore } from "../services/api";
+import { getMarketPrices, getTechnicalIndicators, getAiScore, getEconomicData } from "../services/api";
 import MetricCard from "../components/MetricCard";
 import { LoadingState, ErrorState, EmptyState } from "../components/StateView";
 
 function formatDate(d) {
   return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
+
+const MACRO_INDICATORS = [
+  { key: "fed_funds_rate", label: "Fed Funds Rate", format: (v) => `${v.toFixed(2)}%` },
+  { key: "treasury_10y", label: "10Y Treasury", format: (v) => `${v.toFixed(2)}%` },
+  { key: "treasury_2y", label: "2Y Treasury", format: (v) => `${v.toFixed(2)}%` },
+  { key: "unemployment_rate", label: "Unemployment", format: (v) => `${v.toFixed(1)}%` },
+  { key: "cpi", label: "CPI", format: (v) => v.toFixed(1) },
+  { key: "vix", label: "VIX", format: (v) => v.toFixed(2) },
+  { key: "gdp", label: "GDP", format: (v) => `$${(v / 1000).toFixed(1)}T` },
+];
 
 function recommendationTone(rec) {
   if (!rec) return "default";
@@ -31,6 +41,7 @@ export default function Dashboard() {
   const prices = useApiData(() => getMarketPrices(ticker), [ticker]);
   const tech = useApiData(() => getTechnicalIndicators(ticker), [ticker]);
   const score = useApiData(() => getAiScore(ticker), [ticker]);
+  const macro = useApiData(() => getEconomicData(), []);
 
   const loading = prices.loading || tech.loading || score.loading;
   const error = prices.error || tech.error || score.error;
@@ -216,6 +227,24 @@ export default function Dashboard() {
           )}
         </section>
       </div>
+
+      {macro.data?.length > 0 && (
+        <section className="panel p-6">
+          <h2 className="font-semibold mb-4">Macro Snapshot</h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {MACRO_INDICATORS.map(({ key, label, format }) => {
+              const row = macro.data.find((d) => d.indicator_name === key);
+              return (
+                <MetricCard
+                  key={key}
+                  label={label}
+                  value={row?.value != null ? format(row.value) : "—"}
+                />
+              );
+            })}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

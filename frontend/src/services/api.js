@@ -38,8 +38,44 @@ export function getAiScore(ticker) {
   return unwrap(client.get(`/ai/score/${ticker}`));
 }
 
+export function getAiAnalysis(ticker) {
+  return unwrap(client.get(`/ai/analyze/${ticker}`, { timeout: 45000 }));
+}
+
+export function getRagSearch(ticker) {
+  return unwrap(client.get(`/rag/search/${ticker}`));
+}
+
+export function getAnalystRatings(ticker) {
+  return unwrap(client.get(`/analyst_ratings/${ticker}`));
+}
+
+export function getSecFilings(ticker) {
+  return unwrap(client.get(`/sec_filings/${ticker}`));
+}
+
 export function registerUser(name, email, password) {
   return unwrap(client.post("/users/register", { name, email, password }));
+}
+
+export function loginUser(email, password) {
+  return unwrap(client.post("/users/login", { email, password }));
+}
+
+export function searchUsers(q) {
+  return unwrap(client.get("/users/search", { params: { q } }));
+}
+
+export function getFriends(userId) {
+  return unwrap(client.get(`/friends/${userId}`));
+}
+
+export function addFriend(userId, friendId) {
+  return unwrap(client.post("/friends/add", { user_id: userId, friend_id: friendId }));
+}
+
+export function getEconomicData() {
+  return unwrap(client.get("/economic_data"));
 }
 
 export function addToWatchlist(userId, ticker) {
